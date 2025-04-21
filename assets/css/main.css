@@ -204,6 +204,17 @@ blockquote {
  }
 }
 
+.gifing {
+ margin-left: 1rem;
+ width: 100%
+}
+
+@media (min-width: 576px) {
+ .gifing {
+  width: 40%
+ }
+}
+
 .post-description {
  margin-bottom: 2rem;
  font-size: 0.875rem
