@@ -143,9 +143,9 @@
         <article>
           <p>The procedural generation function began with a choice: multi-dimensional vectors (TARRAYs in this case), or housing multiple dimensions of data in a single dimension vector. </p>
           
-          <p>TArray&lt TArray&lt TArray&lt vec2 &gt &gt &gt positions VS TArray&lt vec2 &gt positions ?</p> 
+          <p>TArray&lt TArray&lt TArray&lt vec2 &gt &gt &gt positionsNested VS TArray&lt vec2 &gt positionsFlat ?</p> 
           
-          <p>It comes down to the runtime efficiency and the memory expense vs. the processor expense. With many coding conventions it is preferred to <i>never</i> dynamically allocate memory. All of my vectors are declared and initialized in my header files with placeholder values.</p>
+          <p>It comes down to the runtime efficiency and the memory expense vs. the processor expense. With many coding conventions it is preferred to <i>never</i> dynamically allocate memory. All of my vectors are declared and initialized in my header files with placeholder values. So which alternative takes up more memory? If I initiliaze positionsNested with 2 groups, each with 2 depth with 2 rows and 2 columns will the amount of memory designated be the same as initializing positionsFlat with 16 values? </p>
   
           <div class="row">
             <div class="col-sm mt-3 mt-md-0">
