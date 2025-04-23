@@ -153,7 +153,7 @@
 
           <p>The preceding illustration shows how to access the desired elements within a single dimensional vector organized to be multi-dimensional. Thats alot of calculation compared to simply inserting the desired value keys shown with the integersNested reference. Accept, that is actually what is happening behind the scenes in the case of the nested vector. The data stored within integersNested is stored in a single dimension in the memory; which is navigated implicitly just as we would explicitly. </p>
 
-          <p>Considering these factors, Sorting Your Marbles implements multi-dimensional vectors. Although single dimensionality simplifies the memory allocation, the tradeoff is not significant enough to warrant the added confusion of extra calculations required to access the data.</p>
+          <p>Considering these factors, Sorting Your Marbles implements multi-dimensional vectors. Although single dimensionality simplifies the memory allocation, the nested vectors are easier to read and write.</p>
 
           <p>These vectors; TArrays in unreal engines case, are the backbone of the procedural generation. How? it's quite simple:</p>
   
@@ -273,6 +273,65 @@
               <li>Fourth: the endpoints are paired. If there are an odd number of endpoints one is left unpaired.</li>
               <li>Fifth: track is calculated between pairs. this includes the verticle and horizontal distance each section of track spans. Also where along those spans turns exist, and what exact orientation each turn has.</li>
               <li>Sixth: for each section of track one of the turns is designated as an intersection. For this to happen the turn must meet certain criteria.</li>
+            </ul>
+          </div>
+
+          <div class="row">
+            <div class="col-sm mt-3 mt-md-0">
+              <figure>
+
+                <picture>
+                  <!-- <source media="(max-width: 480px)" srcset="/assets/img/CAPM-480.webp" />
+    <source media="(max-width: 800px)" srcset="/assets/img/CAPM-800.webp" />
+    <source media="(max-width: 1400px)" srcset="/assets/img/CAPM-1400.webp" />
+    -->
+
+                  <!-- Fallback to the original file -->
+                  <img class="img-fluid rounded z-depth-1" src="/assets/img/a/l.png"
+                    title="step 7">
+
+                </picture>
+
+              </figure>
+            </div>
+            <div class="col-sm mt-3 mt-md-0">
+              <figure>
+
+                <picture>
+                  <!-- <source media="(max-width: 480px)" srcset="/assets/img/dcf-480.webp" />
+    <source media="(max-width: 800px)" srcset="/assets/img/dcf-800.webp" />
+    <source media="(max-width: 1400px)" srcset="/assets/img/dcf-1400.webp" />
+    -->
+
+                  <!-- Fallback to the original file -->
+                  <img class="img-fluid rounded z-depth-1" src="/assets/img/a/m.png" title="step 8">
+
+                </picture>
+
+              </figure>
+            </div>
+            <div class="col-sm mt-3 mt-md-0">
+              <figure>
+
+                <picture>
+                  <!-- <source media="(max-width: 480px)" srcset="/assets/img/scrapefin-480.webp" />
+    <source media="(max-width: 800px)" srcset="/assets/img/scrapefin-800.webp" />
+    <source media="(max-width: 1400px)" srcset="/assets/img/scrapefin-1400.webp" />
+    -->
+
+                  <!-- Fallback to the original file -->
+                  <img class="img-fluid rounded z-depth-1" src="/assets/img/a/n.png" title="step 9">
+
+                </picture>
+
+              </figure>
+            </div>
+          </div>
+          <div>
+            <ul>
+              <li>Seventh: For each group the resulting intersections are paired. The prior steps will now be repeated accept with intersections in the place of endpoints. This is "level" two. Notice in group one nothing is happening. This is because all of the endpoints within group 1 have been connected, group 1 is complete.</li>
+              <li>Eighth: From the track drawn between the level two intersections a turn is chosen to be a new intersection.</li>
+              <li>Nineth: all of the groups have now been completed. Now a single "master" group will be formed containing all of the final intersections for each group. Within this master group the steps repeat. There were only two groups in this example so there is only one pair in the master group. track is drawn between them.</li>
             </ul>
           </div>
   
