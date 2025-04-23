@@ -231,6 +231,12 @@ void AMyHUD::GenerateHolePositions()
   FVector2D centerOfRotation = FVector2D(8, 8);
   negativeOneZeroOrOne = FMath::RandRange(-1, 1);
 
+  // below note holes is shorthand for endpoints. This section designates 
+  // coordinates within the grid system which are be acceptable locations to 
+  // place endpoints. The ammount of "viableHoleCoordinates" increases with the 
+  // number of endpoints. notice in figure 2 the red dotted lines have no 
+  // specified upper bound. It is variable.
+
   for (int a = 0; a < 12; a++)
   {
     for (int b = 0; b < 2; b++)
@@ -241,7 +247,7 @@ void AMyHUD::GenerateHolePositions()
       }
 
     }
-  } // holes is shorthand for endpoints. This above section designates coordinates within the grid system which are be acceptable locations to place endpoints. The ammount of "viableHoleCoordinates" increases with the number of endpoints. notice in figure 2 the red dotted lines have no specified upper bound. It is variable.
+  } 
 
   arrOfViableHoleCoordinates.Append(arrOfViableHoleCoordinatesBase);
 
