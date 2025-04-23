@@ -145,11 +145,11 @@
         </article>
   
         <article>
-          <p>The procedural generation function began with a choice: multi-dimensional vectors (TArray in this case), or housing multiple dimensions of data in a single dimension vector. </p>
+          <p>When planning the procedural generation function it was decided the data should be organized into levels and groups. More on that later. instead of keeping many different variables for all of this data all of it could be centralized under a single variable. And so the procedural generation genesis began with a choice: multi-dimensional vectors (TArray in this case), or housing multiple dimensions of data in a single dimension vector. </p>
           
           <p>TArray&lt TArray&lt TArray&lt vec2 &gt &gt &gt positionsNested VS TArray&lt vec2 &gt positionsFlat ?</p> 
           
-          <p>It comes down to the memory expense vs. the processor expense. With many coding conventions it is preferred to <i>never</i> dynamically allocate memory. All of my vectors are declared and initialized in my header files with placeholder values. So which alternative takes up more memory? If I initiliaze positionsNested with 2 groups, each with 2 depth with 2 rows and 2 columns; will the amount of memory designated be the same as initializing positionsFlat with 16 values? No (“STD::Vector.” Cppreference.Com, <a href="https://en.cppreference.com/w/cpp/container/vector">en.cppreference.com/w/cpp/container/vector</a>. Accessed 22 Apr. 2025. ): vectors, and their common analogs, reallocate contiguous memory automatically, as needed. However at every reallocation more memory is reserved than immediately needed to minimize the number of reallocations. Therefore; while positionsNested and positionsFlat both contain exactly 16 vec2, every additional slot of memory alloted to positionsNested equates to 8 vec2. Compared to only 1 vec2 per slot regarding positionsFlat. It is possible to limit the memory reserved for positionsNested, but time consuming to figure out. For now positionsNested consumes more memory. </p>
+          <p>It comes down to the memory expense vs. the processor expense. With many coding conventions it is preferred to <i>never</i> dynamically allocate memory. All of my vectors are declared and initialized in my header files with placeholder values. So which alternative takes up more memory? If I initiliaze positionsNested with 2 groups, each with 2 depth with 2 rows and 2 columns; will the amount of memory designated be the same as initializing positionsFlat with 16 values? No: vectors, and their common analogs, reallocate contiguous memory automatically, as needed. However at every reallocation more memory is reserved than immediately needed to minimize the number of reallocations. Therefore; while positionsNested and positionsFlat both contain exactly 16 vec2, every additional slot of memory alloted to positionsNested equates to 8 vec2. Compared to only 1 vec2 per slot regarding positionsFlat. It is possible to limit the memory reserved for positionsNested, but time consuming to figure out. For now positionsNested consumes more memory. (“STD::Vector.” Cppreference.Com, <a href="https://en.cppreference.com/w/cpp/container/vector">en.cppreference.com/w/cpp/container/vector</a>. Accessed 22 Apr. 2025. )</p>
 
           <p>What about processor expense? </p>
 
@@ -218,6 +218,105 @@
               <li>Second: track endpoints are designated randomly along the perimeter of the grid. As many different track endpoints as determined by the player in the level selector.</li>
               <li>Third: the endpoints are grouped into either a group of two, a group of four, or a group of eight. The size of the group is chosen randomly with even probability for any option. These groupings will procede until every endpoint has been grouped. For example, if there are seven endpoints, a group of two could be designated, then a group of four, then another group of four. The first two enpoints would be grouped, then the next four, then the last endpoint would be designated it's own group, by itself.</li>
             </ul>
+
+            <p>Once step 3 is completed the data storage begins. The actual code used is as follows:</p>
+
+            <pre>
+              <code>
+                void AMyHUD::GenerateHolePositions()
+                {
+                  int firstIndexOfCurrentPortionOfViableHolePositionsTempVar;
+                  int firstIndexOfCurrentPortionOfViableHolePositions = 0;
+                  int indexOfPreviousEvenHolePosition = 1;
+                  FVector2D centerOfRotation = FVector2D(8, 8);
+                  negativeOneZeroOrOne = FMath::RandRange(-1, 1);
+
+                  for (int a = 0; a < 12; a++)
+                  {
+                    for (int b = 0; b < 2; b++)
+                    {
+                      if ((15 - a) < FMath::Clamp((numberOfHoles - 4) / 2, 0, 6) + 9)
+                      {
+                        arrOfViableHoleCoordinates.Add(FVector2D(b + 14, 15 - a));
+                      }
+
+                    }
+                  }
+
+                  arrOfViableHoleCoordinates.Append(arrOfViableHoleCoordinatesBase);
+
+                  for (int a = 0; a < 13; a++)
+                  {
+                    for (int b = 0; b < 2; b++)
+                    {
+                      if ((4 + a) < FMath::Clamp((numberOfHoles - 4) / 2, 0, 6) + 9)
+                      {
+                        arrOfViableHoleCoordinates.Add(FVector2D(2 - b, a + 4));
+                      }
+
+                    }
+                  }
+
+                  for (int a = 1; a < numberOfHoles + 1; a++)
+                  {
+                    int evenHoleRowCorrectionFigure = pow(2 - (indexOfPreviousEvenHolePosition % 2), (a - 1) % 2);
+
+                    firstIndexOfCurrentPortionOfViableHolePositionsTempVar = (arrOfViableHoleCoordinates.Num() / 2 / numberOfHoles * a + FMath::RoundHalfFromZero(((float)((arrOfViableHoleCoordinates.Num() / 2) % numberOfHoles) / (float)numberOfHoles) * a)) * 2;
+
+                    int currentHolePositionCoordinateIndex = (FMath::RandRange(0, ((firstIndexOfCurrentPortionOfViableHolePositionsTempVar - firstIndexOfCurrentPortionOfViableHolePositions) / evenHoleRowCorrectionFigure) - 1) * evenHoleRowCorrectionFigure) + firstIndexOfCurrentPortionOfViableHolePositions;
+
+                    test.Add(currentHolePositionCoordinateIndex);
+
+                    holePositions.Add(arrOfViableHoleCoordinates[currentHolePositionCoordinateIndex]);
+
+                    firstIndexOfCurrentPortionOfViableHolePositions = firstIndexOfCurrentPortionOfViableHolePositionsTempVar;
+
+                    if ((a - 1) % 2 == 0)
+                    {
+                      indexOfPreviousEvenHolePosition = currentHolePositionCoordinateIndex;
+                    }
+                  }
+
+                  if (negativeOneZeroOrOne != 0)
+                  {
+                    holeCoordinateOrientation = 0;
+
+                    // elsewhere switches based on integers need to be consecutive this switch statement might glitch out
+                    switch (negativeOneZeroOrOne)
+                    {
+                    case -1:
+                      for (int a = 0; a < holePositions.Num(); a++)
+                      {
+                        FVector2D adjustedHolePosition = holePositions[a] - centerOfRotation;
+
+                        holePositions[a] = FVector2D(adjustedHolePosition.Y + centerOfRotation.X, -1 * adjustedHolePosition.X + centerOfRotation.Y);
+                      }
+
+                      break;
+                    case 1:
+                      for (int a = 0; a < holePositions.Num(); a++)
+                      {
+                        FVector2D adjustedHolePosition = holePositions[a] - centerOfRotation;
+
+                        holePositions[a] = FVector2D(-1 * adjustedHolePosition.Y + centerOfRotation.X, adjustedHolePosition.X + centerOfRotation.Y);
+                      }
+
+                      break;
+                    default:
+                      break;
+                    }
+                  }
+                  else
+                  {
+                    holeCoordinateOrientation = 1;
+                  }
+                  /*   nested TArray example
+                  nestedTArr.Add({ 1, 2, 3 });
+                  nestedTArr.Add({ 4, 5, 6 });
+                  nestedTArr[0].Add(7);*/
+                }
+              </code>
+            </pre>
               
           </div>
   
