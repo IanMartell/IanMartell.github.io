@@ -223,98 +223,98 @@
 
             <pre>
               <code>
-                void AMyHUD::GenerateHolePositions()
-                {
-                  int firstIndexOfCurrentPortionOfViableHolePositionsTempVar;
-                  int firstIndexOfCurrentPortionOfViableHolePositions = 0;
-                  int indexOfPreviousEvenHolePosition = 1;
-                  FVector2D centerOfRotation = FVector2D(8, 8);
-                  negativeOneZeroOrOne = FMath::RandRange(-1, 1);
+void AMyHUD::GenerateHolePositions()
+{
+  int firstIndexOfCurrentPortionOfViableHolePositionsTempVar;
+  int firstIndexOfCurrentPortionOfViableHolePositions = 0;
+  int indexOfPreviousEvenHolePosition = 1;
+  FVector2D centerOfRotation = FVector2D(8, 8);
+  negativeOneZeroOrOne = FMath::RandRange(-1, 1);
 
-                  for (int a = 0; a < 12; a++)
-                  {
-                    for (int b = 0; b < 2; b++)
-                    {
-                      if ((15 - a) < FMath::Clamp((numberOfHoles - 4) / 2, 0, 6) + 9)
-                      {
-                        arrOfViableHoleCoordinates.Add(FVector2D(b + 14, 15 - a));
-                      }
+  for (int a = 0; a < 12; a++)
+  {
+    for (int b = 0; b < 2; b++)
+    {
+      if ((15 - a) < FMath::Clamp((numberOfHoles - 4) / 2, 0, 6) + 9)
+      {
+        arrOfViableHoleCoordinates.Add(FVector2D(b + 14, 15 - a));
+      }
 
-                    }
-                  }
+    }
+  }
 
-                  arrOfViableHoleCoordinates.Append(arrOfViableHoleCoordinatesBase);
+  arrOfViableHoleCoordinates.Append(arrOfViableHoleCoordinatesBase);
 
-                  for (int a = 0; a < 13; a++)
-                  {
-                    for (int b = 0; b < 2; b++)
-                    {
-                      if ((4 + a) < FMath::Clamp((numberOfHoles - 4) / 2, 0, 6) + 9)
-                      {
-                        arrOfViableHoleCoordinates.Add(FVector2D(2 - b, a + 4));
-                      }
+  for (int a = 0; a < 13; a++)
+  {
+    for (int b = 0; b < 2; b++)
+    {
+      if ((4 + a) < FMath::Clamp((numberOfHoles - 4) / 2, 0, 6) + 9)
+      {
+        arrOfViableHoleCoordinates.Add(FVector2D(2 - b, a + 4));
+      }
 
-                    }
-                  }
+    }
+  }
 
-                  for (int a = 1; a < numberOfHoles + 1; a++)
-                  {
-                    int evenHoleRowCorrectionFigure = pow(2 - (indexOfPreviousEvenHolePosition % 2), (a - 1) % 2);
+  for (int a = 1; a < numberOfHoles + 1; a++)
+  {
+    int evenHoleRowCorrectionFigure = pow(2 - (indexOfPreviousEvenHolePosition % 2), (a - 1) % 2);
 
-                    firstIndexOfCurrentPortionOfViableHolePositionsTempVar = (arrOfViableHoleCoordinates.Num() / 2 / numberOfHoles * a + FMath::RoundHalfFromZero(((float)((arrOfViableHoleCoordinates.Num() / 2) % numberOfHoles) / (float)numberOfHoles) * a)) * 2;
+    firstIndexOfCurrentPortionOfViableHolePositionsTempVar = (arrOfViableHoleCoordinates.Num() / 2 / numberOfHoles * a + FMath::RoundHalfFromZero(((float)((arrOfViableHoleCoordinates.Num() / 2) % numberOfHoles) / (float)numberOfHoles) * a)) * 2;
 
-                    int currentHolePositionCoordinateIndex = (FMath::RandRange(0, ((firstIndexOfCurrentPortionOfViableHolePositionsTempVar - firstIndexOfCurrentPortionOfViableHolePositions) / evenHoleRowCorrectionFigure) - 1) * evenHoleRowCorrectionFigure) + firstIndexOfCurrentPortionOfViableHolePositions;
+    int currentHolePositionCoordinateIndex = (FMath::RandRange(0, ((firstIndexOfCurrentPortionOfViableHolePositionsTempVar - firstIndexOfCurrentPortionOfViableHolePositions) / evenHoleRowCorrectionFigure) - 1) * evenHoleRowCorrectionFigure) + firstIndexOfCurrentPortionOfViableHolePositions;
 
-                    test.Add(currentHolePositionCoordinateIndex);
+    test.Add(currentHolePositionCoordinateIndex);
 
-                    holePositions.Add(arrOfViableHoleCoordinates[currentHolePositionCoordinateIndex]);
+    holePositions.Add(arrOfViableHoleCoordinates[currentHolePositionCoordinateIndex]);
 
-                    firstIndexOfCurrentPortionOfViableHolePositions = firstIndexOfCurrentPortionOfViableHolePositionsTempVar;
+    firstIndexOfCurrentPortionOfViableHolePositions = firstIndexOfCurrentPortionOfViableHolePositionsTempVar;
 
-                    if ((a - 1) % 2 == 0)
-                    {
-                      indexOfPreviousEvenHolePosition = currentHolePositionCoordinateIndex;
-                    }
-                  }
+    if ((a - 1) % 2 == 0)
+    {
+      indexOfPreviousEvenHolePosition = currentHolePositionCoordinateIndex;
+    }
+  }
 
-                  if (negativeOneZeroOrOne != 0)
-                  {
-                    holeCoordinateOrientation = 0;
+  if (negativeOneZeroOrOne != 0)
+  {
+    holeCoordinateOrientation = 0;
 
-                    // elsewhere switches based on integers need to be consecutive this switch statement might glitch out
-                    switch (negativeOneZeroOrOne)
-                    {
-                    case -1:
-                      for (int a = 0; a < holePositions.Num(); a++)
-                      {
-                        FVector2D adjustedHolePosition = holePositions[a] - centerOfRotation;
+    // elsewhere switches based on integers need to be consecutive this switch statement might glitch out
+    switch (negativeOneZeroOrOne)
+    {
+    case -1:
+      for (int a = 0; a < holePositions.Num(); a++)
+      {
+        FVector2D adjustedHolePosition = holePositions[a] - centerOfRotation;
 
-                        holePositions[a] = FVector2D(adjustedHolePosition.Y + centerOfRotation.X, -1 * adjustedHolePosition.X + centerOfRotation.Y);
-                      }
+        holePositions[a] = FVector2D(adjustedHolePosition.Y + centerOfRotation.X, -1 * adjustedHolePosition.X + centerOfRotation.Y);
+      }
 
-                      break;
-                    case 1:
-                      for (int a = 0; a < holePositions.Num(); a++)
-                      {
-                        FVector2D adjustedHolePosition = holePositions[a] - centerOfRotation;
+      break;
+    case 1:
+      for (int a = 0; a < holePositions.Num(); a++)
+      {
+        FVector2D adjustedHolePosition = holePositions[a] - centerOfRotation;
 
-                        holePositions[a] = FVector2D(-1 * adjustedHolePosition.Y + centerOfRotation.X, adjustedHolePosition.X + centerOfRotation.Y);
-                      }
+        holePositions[a] = FVector2D(-1 * adjustedHolePosition.Y + centerOfRotation.X, adjustedHolePosition.X + centerOfRotation.Y);
+      }
 
-                      break;
-                    default:
-                      break;
-                    }
-                  }
-                  else
-                  {
-                    holeCoordinateOrientation = 1;
-                  }
-                  /*   nested TArray example
-                  nestedTArr.Add({ 1, 2, 3 });
-                  nestedTArr.Add({ 4, 5, 6 });
-                  nestedTArr[0].Add(7);*/
-                }
+      break;
+    default:
+      break;
+    }
+  }
+  else
+  {
+    holeCoordinateOrientation = 1;
+  }
+  /*   nested TArray example
+  nestedTArr.Add({ 1, 2, 3 });
+  nestedTArr.Add({ 4, 5, 6 });
+  nestedTArr[0].Add(7);*/
+}
               </code>
             </pre>
               
