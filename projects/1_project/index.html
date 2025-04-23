@@ -285,13 +285,23 @@ void AMyHUD::GenerateHolePositions()
 
     int currentHolePositionCoordinateIndex = (FMath::RandRange(0, ((firstIndexOfCurrentPortionOfViableHolePositionsTempVar - firstIndexOfCurrentPortionOfViableHolePositions) / evenHoleRowCorrectionFigure) - 1) * evenHoleRowCorrectionFigure) + firstIndexOfCurrentPortionOfViableHolePositions;
 
-    //I could continue to explain everything but it's already at the point you 
+    //I will continue to explain everything but it's already at the point you 
     //will need to go through and calculate this stuff yourself to understand 
     //what is actually happening, for yourself
+
+    //currentHolePositionCoordinateIndex is the determination of where within 
+    //the possible endpoint locations the current endpoint in question (a) is 
+    //going to be placed.
 
     test.Add(currentHolePositionCoordinateIndex);
 
     holePositions.Add(arrOfViableHoleCoordinates[currentHolePositionCoordinateIndex]);
+
+    //holePositions is a 1 dimensional vec2 TArray. In the next section of the 
+    //overarching procedural generation function holePositions will be placed 
+    //into the multi-dimensional TArray as the foundational data. Why not do 
+    //that here? because one of the dimensions is "grouping". The groupings have 
+    //currently not yet been designated.
 
     firstIndexOfCurrentPortionOfViableHolePositions = firstIndexOfCurrentPortionOfViableHolePositionsTempVar;
 
