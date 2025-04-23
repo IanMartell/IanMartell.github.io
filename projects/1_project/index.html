@@ -250,7 +250,8 @@ void AMyHUD::GenerateHolePositions()
   } 
 
   arrOfViableHoleCoordinates.Append(arrOfViableHoleCoordinatesBase);
-  //holeCoordinatesBase is the fully enclosed plot at the bottom of the figure. They are always the same so they are just listed out explicitly in the header file.
+  //holeCoordinatesBase is the fully enclosed plot at the bottom of the figure. 
+  //They are always the same so they are just listed out explicitly in the header file.
 
   for (int a = 0; a < 13; a++)
   {
@@ -264,13 +265,29 @@ void AMyHUD::GenerateHolePositions()
     }
   }
 
+  // The following code places endpoints somewhat randomly within the designated plots.
+
   for (int a = 1; a < numberOfHoles + 1; a++)
   {
     int evenHoleRowCorrectionFigure = pow(2 - (indexOfPreviousEvenHolePosition % 2), (a - 1) % 2);
 
     firstIndexOfCurrentPortionOfViableHolePositionsTempVar = (arrOfViableHoleCoordinates.Num() / 2 / numberOfHoles * a + FMath::RoundHalfFromZero(((float)((arrOfViableHoleCoordinates.Num() / 2) % numberOfHoles) / (float)numberOfHoles) * a)) * 2;
 
+    //this above variable looks complicated but is exactly as it sounds. first 
+    //it divides the quantity of viable spaces by two. This is to prevent an 
+    //endpoint being placed directly behind another endpoint. then the halved 
+    //quantity of viable coordinates is divided by the number of endpoints. this 
+    //is the average size of each section of space within which an endpoints 
+    //location is randomly chosen. The result of this figure multiplied by a, 
+    //plus some other stuff, is the first index of the current portion of viable 
+    //hole positions. current as relevant to a, being the index of a specific 
+    //endpoint 
+
     int currentHolePositionCoordinateIndex = (FMath::RandRange(0, ((firstIndexOfCurrentPortionOfViableHolePositionsTempVar - firstIndexOfCurrentPortionOfViableHolePositions) / evenHoleRowCorrectionFigure) - 1) * evenHoleRowCorrectionFigure) + firstIndexOfCurrentPortionOfViableHolePositions;
+
+    //I could continue to explain everything but it's already at the point you 
+    //will need to go through and calculate this stuff yourself to understand 
+    //what is actually happening for yourself
 
     test.Add(currentHolePositionCoordinateIndex);
 
