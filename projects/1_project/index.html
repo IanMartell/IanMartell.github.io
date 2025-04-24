@@ -219,7 +219,7 @@
               <li>Third: the endpoints are grouped into either a group of two, a group of four, or a group of eight. The size of the group is chosen randomly with even probability for any option. These groupings will procede until every endpoint has been grouped. For example, if there are seven endpoints, a group of two could be designated, then a group of four, then another group of four. The first two enpoints would be grouped, then the next four, then the last endpoint would be designated it's own group, by itself.</li>
             </ul>
 
-            <p>The following code is how step two is accomplished:</p>
+            <p>The following code is how step two is accomplished. Forewarning: the code is tiresome. it is not recommended for casual readers.</p>
 
             <pre>
               <code>
@@ -503,7 +503,7 @@ void AMyHUD::GenerateTrackShape()
             </pre>
               
           </div>
-          
+
           <br></br>  
   
           <div class="row">
@@ -564,149 +564,197 @@ void AMyHUD::GenerateTrackShape()
               <li>Sixth: for each section of track one of the turns is designated as an intersection. For this to happen the turn must meet certain criteria.</li>
             </ul>
 
-            <p>After GenerateHolePositions finishes GenerateTrackShape is called.This is where things start to get complicated. GenerateTrackShape is roughly 4k lines long, so instead of showing it all, it will be broken into chuncks:</p>
+            <p>Once the groups have been established and the bottom level of data is populated in arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection and holeAndIntersectionPositions the cyclical stuff begins:</p>
 
             <pre>
               <code>
-void AMyHUD::GenerateTrackShape()
-{
-  int cumulativeGroupingCoverage = 0;
-  int countOfLoopsOne = 0;
-  TArray<FVector2D> vector2DStorArrOne;
-  TArray<int> intStorArrOne;
-  int currentGroupSize;
-  int unpairedHoleOrIntersectionDir = 0;
-  FVector2D unpairedHoleOrIntersectionPos = FVector2D(0, 0);
-  int currentFirstOfPairHoleDir;
-  TArray<int> firstOfPairHoleDirStorArr;
-  TArray<FVector2D> firstOfPairHoleOrIntersectionPosStorArr;
-  FVector2D differenceInPairPosition;
-  FVector2D differenceInPairPositionAbsolute;
-  int differenceInPairPositionClampedX;
-  int differenceInPairPositionClampedY;
-  TArray<int> availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping;
-  int currentATPPBOCLCG;
-  TArray<int> verticleDistancesBetweenHolesOrIntersections;
-  TArray<int> horizontalDistancesBetweenHolesOrIntersections;
-  TArray<int> firstOfPairIsAboveSecondArr; //this array and firstOfPairIsEvenWithOrLeftOfSecondArr will need to have as many zeros as there are pairs for the first level of each group
-  int currentFirstOfPairIsAboveSecond;
-  TArray<int> firstOfPairIsEvenWithOrLeftOfSecondArr;
-  int currentFirstOfPairIsEvenWithOrLeftOfSecond;
-  TArray<TArray<int> > horizontalAndVerticleDistancesBetweenHolesOrIntersections = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };
-  TArray<int> relevantHorizontalAndVerticleDistances = { 0, 0 };
-  TArray<int> whichOfEachPairsTurnsBecomesTheIntersection;
-  TArray<int> turnDistancesFromFirstOfPairStorArr;
-  TArray<int> amountOfTurnsPerDistance = { 0, 0 };
-  TArray<int> turnDirectionsStorArr;// 0 for right, 1 for left, 2 for intersection, 3 for straight track
-  TArray<int> oneZeroAlternatingArr = { 1, 0, 1, 0, 1 };
-  TArray<int> zeroOneAlternatingArr = { 0, 1, 0, 1, 0 };
-  FVector2D currentFirstOfPairHoleOrIntersectionPosition;//X being first
-  int currentTurnDistance;
-  int previousTurnDistance;
-  FVector2D currentIntersectionPos;
-  TArray<int> pairStartsOnSameSide;
-  TArray<int> intersectionDirStorArr;
-  TArray<int> intersectionOrientationStorArr;// 0 for right, 1 for left, 2 for straight
-  TArray<int> intersectionAjustmentWeights;// 1 for first of pair, 2 for second of pair, 0 for neither
-  FVector2D firstOfPairIntersectionPos;
-  FVector2D secondOfPairIntersectionPos;
-  int firstOfPairIntersectionDir;
-  int secondOfPairIntersectionDir;
-  bool oneLastThing = false;
-  int topLevelIndex;
-
-  // grouping holes in sets of 2, 4, or 8. These are the groupings spoken of in 
-  // step 3.
-  while (numberOfHoles > cumulativeGroupingCoverage)
+  // This is where the master loop containing the all of the remaining sub 
+  // processes for laying out the track is declared and initialized. Once this  
+  // is done looping and the resulting data has been packaged, the track is 
+  // ready for assembly.
+  //so I think once this completes I will promote all the results into the same group on the 4th level and run the level stuff loop one last time. if it works out like this you can change the permanent storage to only have 1 group for the fourth level and beyond. this would restrict you to a maximum of 16 holes but thats probably enough
+  for (int currentGroupIndex = 0; currentGroupIndex < listOfHolePositionGroupings.Num(); currentGroupIndex++)
   {
-    switch (FMath::RandRange((int32)0, (int32)2))
+    currentGroupSize = listOfHolePositionGroupings[currentGroupIndex];
+  
+    for (int currentLevelIndex = 0; currentLevelIndex <= FMath::Clamp(FMath::RoundHalfFromZero((float)currentGroupSize / 2.0f), 1, 3) - 1; currentLevelIndex++)
     {
-    case 0:
-      listOfHolePositionGroupings.Add(2);
-      cumulativeGroupingCoverage += 2;
-      break;
-    case 1:
-      listOfHolePositionGroupings.Add(4);
-      cumulativeGroupingCoverage += 4;
-      break;
-    case 2:
-      listOfHolePositionGroupings.Add(8);
-      cumulativeGroupingCoverage += 8;
-      break;
-    default:
-      break;
-    }
-  }
-
-  // cutting down the last grouping in the listOfHolePositionGroupings so the 
-  // cummulative coverage is the same as the number of holes
-  listOfHolePositionGroupings[listOfHolePositionGroupings.Num() - 1] = listOfHolePositionGroupings[listOfHolePositionGroupings.Num() - 1] - (cumulativeGroupingCoverage - numberOfHoles);
-
-  // designating direction of the track leading away from the holes (its always 
-  // toward the center) while grouping these designations to correspond with the 
-  // holePositionGroupings, and reorganizing holePositions into 
-  // holeAndIntersectionPositions while grouping them to correspond with 
-  // holePositionGroupings. this is where the multi dimensional TArrays begin
-  for (int a = 0; a < listOfHolePositionGroupings.Num(); a++)
-  {
-    for (int b = 0; b < listOfHolePositionGroupings[a]; b++)
-    {
-      vector2DStorArrOne.Add(holePositions[countOfLoopsOne]);
-
-      if (holePositions[countOfLoopsOne].X > holePositions[countOfLoopsOne].Y)
+      if (currentLevelIndex == 0)
       {
-        if (16 - holePositions[countOfLoopsOne].X > holePositions[countOfLoopsOne].Y)
+        firstOfPairIsAboveSecondArr.Empty();
+        firstOfPairIsEvenWithOrLeftOfSecondArr.Empty();
+        intersectionAjustmentWeights.Empty();
+  
+        for (int a = 0; a < currentGroupSize / 2; a++)
         {
-          intStorArrOne.Add(1);
+          firstOfPairIsAboveSecondArr.Add(0);
+          firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+          intersectionAjustmentWeights.Add(0);
+        }
+  
+        //do I need to permanently store intersection adjustment weights here?
+        firstOfPairIsAboveSecondAllPairs[0][currentGroupIndex] = firstOfPairIsAboveSecondArr;
+        firstOfPairIsEvenWithOrLeftOfSecondAllPairs[0][currentGroupIndex] = firstOfPairIsEvenWithOrLeftOfSecondArr;
+  
+        vector2DStorArrOne = holeAndIntersectionPositions[currentLevelIndex][currentGroupIndex];
+        intersectionDirStorArr = arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[currentLevelIndex][currentGroupIndex];
+      }
+  
+      if (intersectionDirStorArr.Num() % 2 == 1)
+      {
+        unpairedHoleOrIntersectionDir = intersectionDirStorArr[intersectionDirStorArr.Num() - 1];
+        unpairedHoleOrIntersectionPos = vector2DStorArrOne[vector2DStorArrOne.Num() - 1];
+      }
+  
+      // designating the amount of turns to the next intersection per pair of 
+      // holes or intersections, getting the distance between the holes or 
+      // intersections and then getting the horizontal and verticle distance 
+      // between the holes or intersections. Then checking if the first hole or 
+      // intersection of a pair is "above" the other.
+  
+      for (int a = 1; a <= intersectionDirStorArr.Num() / 2; a++)//this won't run if there is only one element in the current group
+      {
+        currentFirstOfPairHoleDir = intersectionDirStorArr[a * 2 - 2];
+        firstOfPairHoleDirStorArr.Add(currentFirstOfPairHoleDir);
+        firstOfPairHoleOrIntersectionPosStorArr.Add(vector2DStorArrOne[a * 2 - 2]);
+  
+        differenceInPairPosition = firstOfPairHoleOrIntersectionPosStorArr[a - 1] - vector2DStorArrOne[a * 2 - 1];
+        differenceInPairPositionAbsolute = differenceInPairPosition.GetAbs();
+        differenceInPairPositionClampedX = FMath::Clamp(FMath::RoundToZero((float)differenceInPairPositionAbsolute.X / 2), 0, 2);
+        differenceInPairPositionClampedY = FMath::Clamp(FMath::RoundToZero((float)differenceInPairPositionAbsolute.Y / 2), 0, 2);
+        //this needs to be altered to take into consideration if firstOfPairIsAboveSecond and if firstOfPairIsEvenWithOrLeftOfSecond. if the pair starts on the same side and firstOfPairIsAboveSecond the verticleDistance must equal the differenceInPairPositionAbsolute unmodified. if the pair starts on different sides and firstOfPairIsEvenWithOrLeftOfSecond horizontalDistance must equal the differenceInPairPositionAbsolute + 1, if the pair starts on different sides and firstOfPairIsAboveSecond verticleDistance must equal the differenceInPairPositionAbsolute + 1
+  
+        currentFirstOfPairIsAboveSecond = firstOfPairIsAboveSecondArr[a - 1];
+        currentFirstOfPairIsEvenWithOrLeftOfSecond = firstOfPairIsEvenWithOrLeftOfSecondArr[a - 1];
+  
+        if (currentFirstOfPairHoleDir == intersectionDirStorArr[a * 2 - 1])
+        {
+          pairStartsOnSameSide.Add(1);
+  
+          if (differenceInPairPositionClampedX <= differenceInPairPositionClampedY)
+          { 
+            availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Add(FMath::RandRange(firstOfPairIsEvenWithOrLeftOfSecondArr[a - 1], differenceInPairPositionClampedX) * 2 + 2);
+          }
+          else
+          {
+            availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Add(FMath::RandRange(firstOfPairIsEvenWithOrLeftOfSecondArr[a - 1], differenceInPairPositionClampedY) * 2 + 2);
+          }
+  
+          if (currentFirstOfPairIsAboveSecond)
+          {
+            switch (currentFirstOfPairHoleDir % 2)
+            {
+            case 0:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X - 1);
+              break;
+            case 1:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X);//do I need to roundHalfFromZero here or will it translate properly every time here. this could be a good chance to practice writing an error message generator
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y - 1);
+              break;
+            default:
+              break;
+            }
+          }
+          else if (currentFirstOfPairIsEvenWithOrLeftOfSecond)
+          {
+            switch (currentFirstOfPairHoleDir % 2)
+            {
+            case 0:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y + 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X + 1);
+              break;
+            case 1:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X + 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y + 1);
+              break;
+            default:
+              break;
+            }
+          }
+          else
+          {
+            switch (currentFirstOfPairHoleDir % 2)
+            {
+            case 0:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X + 1);
+              break;
+            case 1:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y + 1);
+              break;
+            default:
+              break;
+            }
+          }
         }
         else
         {
-          intStorArrOne.Add(4);
+          pairStartsOnSameSide.Add(0);
+  
+          if (differenceInPairPositionClampedX <= differenceInPairPositionClampedY)
+          {
+            availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Add(FMath::RandRange(FMath::Clamp(firstOfPairIsAboveSecondArr[a - 1] + firstOfPairIsEvenWithOrLeftOfSecondArr[a - 1], 0, 1), differenceInPairPositionClampedX) * 2 + 1);// I just took off a * 2 from the end of the first argument of the RandRange 01/17/24
+          }
+          else
+          {
+            availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Add(FMath::RandRange(FMath::Clamp(firstOfPairIsAboveSecondArr[a - 1] + firstOfPairIsEvenWithOrLeftOfSecondArr[a - 1], 0, 1), differenceInPairPositionClampedY) * 2 + 1);
+          }
+  
+          if (currentFirstOfPairIsAboveSecond)
+          {
+            switch (currentFirstOfPairHoleDir % 2)
+            {
+            case 0:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y - 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X); //just changed this from +1 to + nothing 01/17/24 
+              break;
+            case 1:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X - 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y); //just changed this from +1 to + nothing 01/17/24 
+              break;
+            default:
+              break;
+            }
+          }
+          else if (currentFirstOfPairIsEvenWithOrLeftOfSecond)
+          {
+            switch (currentFirstOfPairHoleDir % 2)
+            {
+            case 0:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y + 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X);
+              break;
+            case 1:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X + 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y);
+              break;
+            default:
+              break;
+            }
+          }
+          else
+          {
+            switch (currentFirstOfPairHoleDir % 2)
+            {
+            case 0:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y - 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X);
+              break;
+            case 1:
+              horizontalDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.X - 1);
+              verticleDistancesBetweenHolesOrIntersections.Add(differenceInPairPositionAbsolute.Y);
+              break;
+            default:
+              break;
+            }
+          }
         }
       }
-      else
-      {
-        if (holePositions[countOfLoopsOne].X > 16 - holePositions[countOfLoopsOne].Y)
-        {
-          intStorArrOne.Add(3);
-        }
-        else
-        {
-          intStorArrOne.Add(2);
-        }
-      }
-
-      countOfLoopsOne++;
-    }
-    arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[0][a] = intStorArrOne;
-
-    holeAndIntersectionPositions[0][a] = vector2DStorArrOne;
-
-    intStorArrOne.Empty();
-    vector2DStorArrOne.Empty();
-
-  }
-  if (numberOfHoles > 12)
-  {
-    switch (negativeOneZeroOrOne)
-    {
-    case -1:
-      arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[0][0][0] = 1;
-      arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[0][listOfHolePositionGroupings.Num() - 1][listOfHolePositionGroupings[listOfHolePositionGroupings.Num() - 1] - 1] = 3;
-      break;
-    case 0:
-      arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[0][0][0] = 4;
-      arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[0][listOfHolePositionGroupings.Num() - 1][listOfHolePositionGroupings[listOfHolePositionGroupings.Num() - 1] - 1] = 2;
-      break;
-    case 1:
-      arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[0][0][0] = 3;
-      arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[0][listOfHolePositionGroupings.Num() - 1][listOfHolePositionGroupings[listOfHolePositionGroupings.Num() - 1] - 1] = 1;
-      break;
-    default:
-      break;
-    }
-  }
-  countOfLoopsOne = 0;
+  
+      horizontalAndVerticleDistancesBetweenHolesOrIntersections[0] = horizontalDistancesBetweenHolesOrIntersections;
+      horizontalAndVerticleDistancesBetweenHolesOrIntersections[1] = verticleDistancesBetweenHolesOrIntersections;
               </code>
             </pre>
           </div>
