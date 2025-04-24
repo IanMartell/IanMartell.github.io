@@ -219,7 +219,7 @@
               <li>Third: the endpoints are grouped into either a group of two, a group of four, or a group of eight. The size of the group is chosen randomly with even probability for any option. These groupings will procede until every endpoint has been grouped. For example, if there are seven endpoints, a group of two could be designated, then a group of four, then another group of four. The first two enpoints would be grouped, then the next four, then the last endpoint would be designated it's own group, by itself.</li>
             </ul>
 
-            <p>The following code is how step two is accomplished. Forewarning: the code is tiresome. it is not recommended for casual readers.</p>
+            <p>The following code is how step two is accomplished. Forewarning: the code is tiresome. It is not recommended for casual readers.</p>
 
             <pre>
               <code>
@@ -356,7 +356,7 @@ void AMyHUD::GenerateHolePositions()
 
           <br></br>
 
-          <p>After GenerateHolePositions finishes GenerateTrackShape is called.This is where things start to get complicated. GenerateTrackShape is roughly 4k lines long, so instead of showing it all, it will be broken into chuncks:</p>
+          <p>After GenerateHolePositions finishes GenerateTrackShape is called.This is where things start to get complicated. GenerateTrackShape is roughly 4k lines long, so instead of showing it all, it will be broken into chuncks.</p>
 
             <pre>
               <code>
@@ -564,7 +564,7 @@ void AMyHUD::GenerateTrackShape()
               <li>Sixth: for each section of track one of the turns is designated as an intersection. For this to happen the turn must meet certain criteria.</li>
             </ul>
 
-            <p>Once the groups have been established and the bottom level of data is populated in arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection and holeAndIntersectionPositions the cyclical stuff begins:</p>
+            <p>Once the groups have been established and the bottom level of data is populated in arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection and holeAndIntersectionPositions the cyclical stuff begins with the step 6 stuff.</p>
 
             <pre>
               <code>
@@ -587,7 +587,9 @@ void AMyHUD::GenerateTrackShape()
   
         for (int a = 0; a < currentGroupSize / 2; a++)
         {
-          firstOfPairIsAboveSecondArr.Add(0);
+          firstOfPairIsAboveSecondArr.Add(0); //this is zero for each endpoint 
+          // on the bottom level because the endpoint locations are generated in 
+          // accordance with this condition
           firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
           intersectionAjustmentWeights.Add(0);
         }
@@ -757,7 +759,509 @@ void AMyHUD::GenerateTrackShape()
       horizontalAndVerticleDistancesBetweenHolesOrIntersections[1] = verticleDistancesBetweenHolesOrIntersections;
               </code>
             </pre>
+
+            <br></br>
+
+            <p>Once the track between pairs, for this group, for this level, has been defined an intersection will be determined from one of the turns.</p>
+
+            <pre>
+              <code>
+      // determining the intersection location. I will also need to rework the 
+      // first section of this master loop and at the very least determine 
+      // firstOfPairIsAboveSecond and firstOfPairIsEvenWithOrLeftOfSecond here. 
+      // As apart of determining intersection Position I will also need to 
+      // "reposition" the intersections of all future pairs which you will 
+      // weight to recieve an in intersection in close proximity
+      vector2DStorArrOne.Empty();
+      
+      for (int currentPairIndex = 0; currentPairIndex < availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Num(); currentPairIndex++)//Im not sure if this needs to run every pair or every holeOrIntersection, I think its pair
+      {
+        turnDistancesFromFirstOfPairStorArr = turnAndIntersectionDistancesPerPair[currentLevelIndex][currentGroupIndex][currentPairIndex];
+        currentIntersectionPos = firstOfPairHoleOrIntersectionPosStorArr[currentPairIndex];
+        //so now all I have to do today is finish this code section, and change the firstOfPairIsAboveSecond and firstOfPairIsEvenWithOrLeftOfSecond calculation to on this level after this. can you interweave adjusting the intersection position? come to think of it that will need to occur before calculating firstOfPairIsAboveSecond and firstOfPairIsEvenWithOrLeftOfSecond
+      
+        currentTurnDistance = turnDistancesFromFirstOfPairStorArr[whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] - 1];
+      
+        if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] != 1)
+        {
+          previousTurnDistance = turnDistancesFromFirstOfPairStorArr[whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] - 2];//this should be a minus 2 
+        }
+        else
+        {
+          previousTurnDistance = 0;
+        }
+      
+        // cases where firstOfPairIsAboveSecond are more complicated. I have 
+        // settled on setting the first turn from the firstOfPair to be -1 
+        // which should function properly now. however when I build the level I 
+        // will need to pay special attention to this
+      
+        switch (firstOfPairHoleDirStorArr[currentPairIndex])
+        {
+        case 1:
+          if (firstOfPairIsAboveSecondArr[currentPairIndex])//you still need to adjust how horizontal and verticle distances are calculated to account for if firstOfPairIsAboveSecond or if firstOfPairIsEvenWithOrLeftOfSecond
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X -= previousTurnDistance;
+              currentIntersectionPos.Y -= currentTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X -= currentTurnDistance;
+              currentIntersectionPos.Y -= previousTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else if (firstOfPairIsEvenWithOrLeftOfSecondArr[currentPairIndex])
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X += previousTurnDistance;
+              currentIntersectionPos.Y += currentTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X += currentTurnDistance;
+              currentIntersectionPos.Y += previousTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X -= previousTurnDistance;
+              currentIntersectionPos.Y += currentTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X -= currentTurnDistance;
+              currentIntersectionPos.Y += previousTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+      
+          break;
+        case 2:
+          if (firstOfPairIsAboveSecondArr[currentPairIndex])
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X -= currentTurnDistance;
+              currentIntersectionPos.Y += previousTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X -= previousTurnDistance;
+              currentIntersectionPos.Y += currentTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else if (firstOfPairIsEvenWithOrLeftOfSecondArr[currentPairIndex])
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X += currentTurnDistance;
+              currentIntersectionPos.Y -= previousTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X += previousTurnDistance;
+              currentIntersectionPos.Y -= currentTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X += currentTurnDistance;
+              currentIntersectionPos.Y += previousTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X += previousTurnDistance;
+              currentIntersectionPos.Y += currentTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+      
+          break;
+        case 3:
+          if (firstOfPairIsAboveSecondArr[currentPairIndex])
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X += previousTurnDistance;
+              currentIntersectionPos.Y += currentTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X += currentTurnDistance;
+              currentIntersectionPos.Y += previousTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else if (firstOfPairIsEvenWithOrLeftOfSecondArr[currentPairIndex])
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X -= previousTurnDistance;
+              currentIntersectionPos.Y -= currentTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X -= currentTurnDistance;
+              currentIntersectionPos.Y -= previousTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X += previousTurnDistance;
+              currentIntersectionPos.Y -= currentTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X += currentTurnDistance;
+              currentIntersectionPos.Y -= previousTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+      
+          break;
+        case 4:
+          if (firstOfPairIsAboveSecondArr[currentPairIndex])
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X += currentTurnDistance;
+              currentIntersectionPos.Y -= previousTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X += previousTurnDistance;
+              currentIntersectionPos.Y -= currentTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else if (firstOfPairIsEvenWithOrLeftOfSecondArr[currentPairIndex])
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X -= currentTurnDistance;
+              currentIntersectionPos.Y += previousTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X -= previousTurnDistance;
+              currentIntersectionPos.Y += currentTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+          else
+          {
+            if (whichOfEachPairsTurnsBecomesTheIntersection[currentPairIndex] % 2 == 1)
+            {
+              currentIntersectionPos.X -= currentTurnDistance;
+              currentIntersectionPos.Y -= previousTurnDistance;
+            }
+            else
+            {
+              currentIntersectionPos.X -= previousTurnDistance;
+              currentIntersectionPos.Y -= currentTurnDistance;
+            }
+      
+            vector2DStorArrOne.Add(currentIntersectionPos);
+          }
+      
+          break;
+        default:
+          break;
+        }
+      }
+      turnDistancesFromFirstOfPairStorArr.Empty();
+      intersectionDirStorArr.Empty();
+      
+      //calculating newly generated intersection's directions and orientations
+      for (int currentIntersection = 0; currentIntersection < vector2DStorArrOne.Num(); currentIntersection++)
+      {
+        currentFirstOfPairIsAboveSecond = firstOfPairIsAboveSecondArr[currentIntersection];
+        currentFirstOfPairIsEvenWithOrLeftOfSecond = firstOfPairIsEvenWithOrLeftOfSecondArr[currentIntersection];
+      
+        if (pairStartsOnSameSide[currentIntersection])
+        {
+          intersectionDirStorArr.Add(firstOfPairHoleDirStorArr[currentIntersection]);
+      
+          if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] % 2)
+          {
+            intersectionOrientationStorArr.Add(1);
+          }
+          else
+          {
+            intersectionOrientationStorArr.Add(0);
+          }
+        }
+        else
+        {
+          switch (firstOfPairHoleDirStorArr[currentIntersection])//are the 16s in this switch statement correct? I think so
+          {
+          case 1:
+            if (currentFirstOfPairIsEvenWithOrLeftOfSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping[currentIntersection])
+              {
+                if (vector2DStorArrOne[currentIntersection].X <= vector2DStorArrOne[currentIntersection].Y)
+                {
+                  intersectionDirStorArr.Add(2);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(1);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(2);
+                intersectionOrientationStorArr.Add(1);
+              }
+      
+            }
+            else if (currentFirstOfPairIsAboveSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == 1)
+              {
+                if (vector2DStorArrOne[currentIntersection].X <= vector2DStorArrOne[currentIntersection].Y)
+                {
+                  intersectionDirStorArr.Add(2);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(1);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(1);
+                intersectionOrientationStorArr.Add(0);
+              }
+            }
+            else
+            {
+              if (vector2DStorArrOne[currentIntersection].X <= vector2DStorArrOne[currentIntersection].Y)
+              {
+                intersectionDirStorArr.Add(2);
+                intersectionOrientationStorArr.Add(0);
+              }
+              else
+              {
+                intersectionDirStorArr.Add(1);
+                intersectionOrientationStorArr.Add(1);
+              }
+            }
+            break;
+          case 2:
+            if (currentFirstOfPairIsEvenWithOrLeftOfSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping[currentIntersection])
+              {
+                if (16 - vector2DStorArrOne[currentIntersection].Y <= vector2DStorArrOne[currentIntersection].X)
+                {
+                  intersectionDirStorArr.Add(3);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(2);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(3);
+                intersectionOrientationStorArr.Add(1);
+              }
+      
+            }
+            else if (currentFirstOfPairIsAboveSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == 1)
+              {
+                if (16 - vector2DStorArrOne[currentIntersection].Y <= vector2DStorArrOne[currentIntersection].X)
+                {
+                  intersectionDirStorArr.Add(3);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(2);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(2);
+                intersectionOrientationStorArr.Add(0);
+              }
+            }
+            else
+            {
+              if (16 - vector2DStorArrOne[currentIntersection].Y <= vector2DStorArrOne[currentIntersection].X)
+              {
+                intersectionDirStorArr.Add(3);
+                intersectionOrientationStorArr.Add(0);
+              }
+              else
+              {
+                intersectionDirStorArr.Add(2);
+                intersectionOrientationStorArr.Add(1);
+              }
+            }
+            break;
+          case 3:
+            if (currentFirstOfPairIsEvenWithOrLeftOfSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping[currentIntersection])
+              {
+                if (16 - vector2DStorArrOne[currentIntersection].X <= 16 - vector2DStorArrOne[currentIntersection].Y)
+                {
+                  intersectionDirStorArr.Add(4);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(3);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(4);
+                intersectionOrientationStorArr.Add(1);
+              }
+      
+            }
+            else if (currentFirstOfPairIsAboveSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == 1)
+              {
+                if (16 - vector2DStorArrOne[currentIntersection].X <= 16 - vector2DStorArrOne[currentIntersection].Y)
+                {
+                  intersectionDirStorArr.Add(4);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(3);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(3);
+                intersectionOrientationStorArr.Add(0);
+              }
+            }
+            else
+            {
+              if (16 - vector2DStorArrOne[currentIntersection].X <= 16 - vector2DStorArrOne[currentIntersection].Y)
+              {
+                intersectionDirStorArr.Add(4);
+                intersectionOrientationStorArr.Add(0);
+              }
+              else
+              {
+                intersectionDirStorArr.Add(3);
+                intersectionOrientationStorArr.Add(1);
+              }
+            }
+            break;
+          case 4:
+            if (currentFirstOfPairIsEvenWithOrLeftOfSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping[currentIntersection])
+              {
+                if (vector2DStorArrOne[currentIntersection].Y <= 16 - vector2DStorArrOne[currentIntersection].X)
+                {
+                  intersectionDirStorArr.Add(1);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(4);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(1);
+                intersectionOrientationStorArr.Add(1);
+              }
+      
+            }
+            else if (currentFirstOfPairIsAboveSecond)
+            {
+              if (whichOfEachPairsTurnsBecomesTheIntersection[currentIntersection] == 1)
+              {
+                if (vector2DStorArrOne[currentIntersection].Y <= 16 - vector2DStorArrOne[currentIntersection].X)
+                {
+                  intersectionDirStorArr.Add(1);
+                  intersectionOrientationStorArr.Add(0);
+                }
+                else
+                {
+                  intersectionDirStorArr.Add(4);
+                  intersectionOrientationStorArr.Add(1);
+                }
+              }
+              else
+              {
+                intersectionDirStorArr.Add(4);
+                intersectionOrientationStorArr.Add(0);
+              }
+            }
+            else
+            {
+              if (vector2DStorArrOne[currentIntersection].Y <= 16 - vector2DStorArrOne[currentIntersection].X)
+              {
+                intersectionDirStorArr.Add(1);
+                intersectionOrientationStorArr.Add(0);
+              }
+              else
+              {
+                intersectionDirStorArr.Add(4);
+                intersectionOrientationStorArr.Add(1);
+              }
+            }
+            break;
+          default:
+            break;
+          }
+        }
+      }
+              </code>
+            </pre>
           </div>
+
+          <br></br>
 
           <div class="row">
             <div class="col-sm mt-3 mt-md-0">
