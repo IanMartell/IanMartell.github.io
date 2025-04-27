@@ -572,7 +572,11 @@ void AMyHUD::GenerateTrackShape()
   // processes for laying out the track is declared and initialized. Once this  
   // is done looping and the resulting data has been packaged, the track is 
   // ready for assembly.
-  //so I think once this completes I will promote all the results into the same group on the 4th level and run the level stuff loop one last time. if it works out like this you can change the permanent storage to only have 1 group for the fourth level and beyond. this would restrict you to a maximum of 16 holes but thats probably enough
+  // so I think once this completes I will promote all the results into the 
+  // same group on the 4th level and run the level stuff loop one last time. if 
+  // it works out like this  the permanent storage will only have 1 
+  // group for the fourth level and beyond. this would restrict players to a 
+  // maximum of 16 endpoints but thats probably plenty
   for (int currentGroupIndex = 0; currentGroupIndex < listOfHolePositionGroupings.Num(); currentGroupIndex++)
   {
     currentGroupSize = listOfHolePositionGroupings[currentGroupIndex];
@@ -612,7 +616,8 @@ void AMyHUD::GenerateTrackShape()
       // holes or intersections, getting the distance between the holes or 
       // intersections and then getting the horizontal and verticle distance 
       // between the holes or intersections. Then checking if the first hole or 
-      // intersection of a pair is "above" the other.
+      // intersection of a pair is "above" the other, or "even or left of" the 
+      // other.
   
       for (int a = 1; a <= intersectionDirStorArr.Num() / 2; a++)//this won't run if there is only one element in the current group
       {
@@ -624,7 +629,6 @@ void AMyHUD::GenerateTrackShape()
         differenceInPairPositionAbsolute = differenceInPairPosition.GetAbs();
         differenceInPairPositionClampedX = FMath::Clamp(FMath::RoundToZero((float)differenceInPairPositionAbsolute.X / 2), 0, 2);
         differenceInPairPositionClampedY = FMath::Clamp(FMath::RoundToZero((float)differenceInPairPositionAbsolute.Y / 2), 0, 2);
-        //this needs to be altered to take into consideration if firstOfPairIsAboveSecond and if firstOfPairIsEvenWithOrLeftOfSecond. if the pair starts on the same side and firstOfPairIsAboveSecond the verticleDistance must equal the differenceInPairPositionAbsolute unmodified. if the pair starts on different sides and firstOfPairIsEvenWithOrLeftOfSecond horizontalDistance must equal the differenceInPairPositionAbsolute + 1, if the pair starts on different sides and firstOfPairIsAboveSecond verticleDistance must equal the differenceInPairPositionAbsolute + 1
   
         currentFirstOfPairIsAboveSecond = firstOfPairIsAboveSecondArr[a - 1];
         currentFirstOfPairIsEvenWithOrLeftOfSecond = firstOfPairIsEvenWithOrLeftOfSecondArr[a - 1];
@@ -762,16 +766,14 @@ void AMyHUD::GenerateTrackShape()
 
             <br></br>
 
-            <p>Once the track between pairs, for this group, for this level, has been defined an intersection will be determined from one of the turns.</p>
+            <p>Once the track between endpoint or intersection pairs, for this group, for this level, has been defined, an intersection will be determined from one of the turns.</p>
 
             <pre>
               <code>
       // determining the intersection location. I will also need to rework the 
       // first section of this master loop and at the very least determine 
-      // firstOfPairIsAboveSecond and firstOfPairIsEvenWithOrLeftOfSecond here. 
-      // As apart of determining intersection Position I will also need to 
-      // "reposition" the intersections of all future pairs which you will 
-      // weight to recieve an in intersection in close proximity
+      // firstOfPairIsAboveSecond and firstOfPairIsEvenWithOrLeftOfSecond here.
+      
       vector2DStorArrOne.Empty();
       
       for (int currentPairIndex = 0; currentPairIndex < availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Num(); currentPairIndex++)//Im not sure if this needs to run every pair or every holeOrIntersection, I think its pair
