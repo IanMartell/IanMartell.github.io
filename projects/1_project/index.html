@@ -773,7 +773,7 @@ void AMyHUD::GenerateTrackShape()
       // determining the intersection location. I will also need to rework the 
       // first section of this master loop and at the very least determine 
       // firstOfPairIsAboveSecond and firstOfPairIsEvenWithOrLeftOfSecond here.
-      
+
       vector2DStorArrOne.Empty();
       
       for (int currentPairIndex = 0; currentPairIndex < availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Num(); currentPairIndex++)//Im not sure if this needs to run every pair or every holeOrIntersection, I think its pair
@@ -1264,6 +1264,763 @@ void AMyHUD::GenerateTrackShape()
           </div>
 
           <br></br>
+
+          <p> Are you with me so far? I'm not: checking out now. I will include the rest of <i>this</i> code here for clarity's sake. The really good stuff is where all the raw data is interpreted, buut nobody wants to read that. </p>
+
+          <pre>
+            <code>
+              
+			//promoting any unpaired holes or intersections into the next level
+			if (unpairedHoleOrIntersectionDir != 0)
+			{//if I switch putting intersectionDirStorArr and intersectionPosStorArr into permanent storage until after this I might be able to increase efficiency slightly
+				turnAndIntersectionDistancesPerPair[currentLevelIndex][currentGroupIndex][availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Num()] = { 1 };
+				directionsOfTurns[currentLevelIndex][currentGroupIndex][availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Num()] = { 2 };//Im setting this to 2 instead of 3 and using intersection orientation to discern whether the intersection is actually straight track
+
+				switch (unpairedHoleOrIntersectionDir)
+				{
+				case 1:
+					vector2DStorArrOne.Add(FVector2D(unpairedHoleOrIntersectionPos.X, unpairedHoleOrIntersectionPos.Y + 1));
+					break;
+				case 2:
+					vector2DStorArrOne.Add(FVector2D(unpairedHoleOrIntersectionPos.X + 1, unpairedHoleOrIntersectionPos.Y));
+					break;
+				case 3:
+					vector2DStorArrOne.Add(FVector2D(unpairedHoleOrIntersectionPos.X, unpairedHoleOrIntersectionPos.Y - 1));
+					break;
+				case 4:
+					vector2DStorArrOne.Add(FVector2D(unpairedHoleOrIntersectionPos.X - 1, unpairedHoleOrIntersectionPos.Y));
+					break;
+				default:
+					break;
+				}
+
+				intersectionDirStorArr.Add(unpairedHoleOrIntersectionDir);
+				intersectionOrientationStorArr.Add(2);
+
+				//should I wait until later to promote the unpairedDir?
+
+				unpairedHoleOrIntersectionPos = FVector2D(0, 0);
+				unpairedHoleOrIntersectionDir = 0;
+
+				firstOfPairIsAboveSecondAllPairs[currentLevelIndex][currentGroupIndex].Add(0);
+				firstOfPairIsEvenWithOrLeftOfSecondAllPairs[currentLevelIndex][currentGroupIndex].Add(0);//just after the intersectionadjustments block if there is an unpaired intersection on the next level the level a 0 is added to the adjustment weights array
+
+				//will this intersectionOrientation need to be set to 2 for straight track? or will enough be handled by directionOfTurns it wont matter?
+				//make sure this unpaired hole does not get an adjustment in the following code bracket. it shouldnt but just watch out
+			}
+
+			// this is where everything gets placed into permanent storage. remember this needs to get moved above the intersection adjustment section
+			holeAndIntersectionPositions[currentLevelIndex + 1][currentGroupIndex] = vector2DStorArrOne;
+			arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[currentLevelIndex + 1][currentGroupIndex] = intersectionDirStorArr;
+			intersectionOrientationsPerGroupPerLevel[currentLevelIndex + 1][currentGroupIndex] = intersectionOrientationStorArr;
+
+			//select intersection position are adjusted and firstOfPairIsAboveSecond and firstOfPairIsEvenWithOrLeftOfSecond are written. It's likely adjustingIntersectionPos will cause problems but i will need to run the code a lot to find these issues. To achieve the adjustment I am not adjusting any vector2D's in permanent storage, but tracking which of all intersections are being ajdusted, and then in temporary storage I am adjusting the vector2DStorArrOne for the purpose of calculating the proceeding track and intersections. all of this means when I build the level I will have to inlcude a distinct functionality to extend an appropriately sized portion of track from any intersection bearing a weight
+			intersectionAjustmentWeights.Empty();
+			firstOfPairIsAboveSecondArr.Empty();
+			firstOfPairIsEvenWithOrLeftOfSecondArr.Empty();
+
+			//currently intersections can still be sandwiched together because im not checking which side of the pair needs the adjustment most MAYBE SOLVED further testing required
+			// I have noticed when pairStartsOnDifferentSides the logic needs to be handled as if first of pair is above second when first of pair is level with second which is not the case for when pairStartsOnSameSide MAYBE SOLVED further testing required
+			//for all first of pair starts on different side then second in this section should I add logic to make the adjustment go to the intersection closest to its side when one intersection is considerably closer to the middle? this would need to include a check to make sure horizontal distance is greater than 1
+
+			if (vector2DStorArrOne.Num() > 1)
+			{
+				for (int currentPair = 1; currentPair <= vector2DStorArrOne.Num() / 2; currentPair++)
+				{//go through and change the below variables from arrays to single variables if it turns out you aren't using modulo to divine the appropriate index anywhere
+					firstOfPairIntersectionPos = vector2DStorArrOne[currentPair * 2 - 2];
+					secondOfPairIntersectionPos = vector2DStorArrOne[currentPair * 2 - 1];
+					firstOfPairIntersectionDir = intersectionDirStorArr[currentPair * 2 - 2];
+					secondOfPairIntersectionDir = intersectionDirStorArr[currentPair * 2 - 1];
+					differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+					differenceInPairPositionAbsolute = differenceInPairPosition.GetAbs();
+
+					if (abs(firstOfPairIntersectionDir - secondOfPairIntersectionDir) == 2)
+					{//this runs when the current pair of intersections aren't just on different sides but on opposite sides. this currently only works with intersections, I have not written the solution to this problem for holes
+						intersectionDirStorArr[currentPair * 2 - 2] = FMath::Clamp((firstOfPairIntersectionDir + 1) % 5, 1, 4);
+						intersectionAjustmentWeights.Add(3);
+
+						switch (firstOfPairIntersectionDir)
+						{
+						case 1:
+							firstOfPairIntersectionPos.Y += 1;
+							vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+							differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+
+							if (differenceInPairPosition.X > -1)
+							{
+								firstOfPairIsAboveSecondArr.Add(1);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							else if (differenceInPairPosition.Y > -1)
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+							}
+							else
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							break;
+						case 2:
+							firstOfPairIntersectionPos.X += 1;
+							vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+							differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+
+							if (differenceInPairPosition.Y < 1)
+							{
+								firstOfPairIsAboveSecondArr.Add(1);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							else if (differenceInPairPosition.X > -1)
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+							}
+							else
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							break;
+						case 3:
+							firstOfPairIntersectionPos.Y -= 1;
+							vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+							differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+
+							if (differenceInPairPosition.X < 1)
+							{
+								firstOfPairIsAboveSecondArr.Add(1);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							else if (differenceInPairPosition.Y < 1)
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+							}
+							else
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							break;
+						case 4:
+							firstOfPairIntersectionPos.X -= 1;
+							vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+							differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+
+							if (differenceInPairPosition.Y > -1)
+							{
+								firstOfPairIsAboveSecondArr.Add(1);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							else if (differenceInPairPosition.X < 1)
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+							}
+							else
+							{
+								firstOfPairIsAboveSecondArr.Add(0);
+								firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+							}
+							break;
+						default:
+							break;
+						}
+					}
+					else
+					{
+						switch (firstOfPairIntersectionDir)
+						{
+						case 1:
+							if (firstOfPairIntersectionDir == secondOfPairIntersectionDir)
+							{
+								if (differenceInPairPosition.Y > 0)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.Y += extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.X < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.Y += extentOfAdjustment;
+
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (FMath::RandRange(0, 1) && differenceInPairPosition.Y > -2)
+									{//second of pair gets adjustment
+										secondOfPairIntersectionPos.Y += extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(2);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+									else
+									{// first of pair gets adjustment
+										firstOfPairIntersectionPos.Y += extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(1);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+
+									if (differenceInPairPosition.Y > 0)
+									{
+										firstOfPairIsAboveSecondArr.Add(1);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+									else if (differenceInPairPosition.X < 1)
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									}
+									else
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+								}
+							}
+							else
+							{
+								if (differenceInPairPosition.Y > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.Y += extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.X < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.X += extentOfAdjustment;
+
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (differenceInPairPositionAbsolute.X < 2 || differenceInPairPositionAbsolute.Y < 2)
+									{
+										if (differenceInPairPosition.Y < -1)
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.X += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else if (differenceInPairPosition.X > 1)
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.Y += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{//no adjustments are made. This logic is a necessity but this case should be avoided at all costs
+											intersectionAjustmentWeights.Add(0);
+										}
+									}
+									else
+									{
+										if (FMath::RandRange(0, 1))
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.X += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.Y += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+									}
+
+									if (differenceInPairPosition.Y > -1)
+									{
+										firstOfPairIsAboveSecondArr.Add(1);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+									else if (differenceInPairPosition.X < 1)
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									}
+									else
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+								}
+							}
+
+							break;
+						case 2:
+							if (firstOfPairIntersectionDir == secondOfPairIntersectionDir)
+							{
+								if (differenceInPairPosition.X > 0)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.X += extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.Y > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.X += extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (FMath::RandRange(0, 1) && differenceInPairPosition.X > -2)
+									{//second of pair gets adjustment
+										secondOfPairIntersectionPos.X += extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(2);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+									else
+									{// first of pair gets adjustment
+										firstOfPairIntersectionPos.X += extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(1);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+
+									if (differenceInPairPosition.X > 0)
+									{
+										firstOfPairIsAboveSecondArr.Add(1);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+									else if (differenceInPairPosition.Y > -1)
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									}
+									else
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+								}
+							}
+							else
+							{
+								if (differenceInPairPosition.X > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.X += extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.Y > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.Y -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (differenceInPairPositionAbsolute.X < 2 || differenceInPairPositionAbsolute.Y < 2)
+									{
+										if (differenceInPairPosition.X < -1)
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.Y -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else if (differenceInPairPosition.Y < -1)
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.X += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{//no adjustments are made. This logic is a necessity but this case should be avoided at all costs
+											intersectionAjustmentWeights.Add(0);
+										}
+									}
+									else
+									{
+										if (FMath::RandRange(0, 1))
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.Y -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.X += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+									}
+								}
+
+								if (differenceInPairPosition.X > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+								}
+								else if (differenceInPairPosition.Y > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+								}
+								else
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+								}
+							}
+
+							break;
+						case 3:
+							if (firstOfPairIntersectionDir == secondOfPairIntersectionDir)
+							{
+								if (differenceInPairPosition.Y < 0)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.Y -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.X > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.Y -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (FMath::RandRange(0, 1) && differenceInPairPosition.Y < 2)
+									{//second of pair gets adjustment
+										secondOfPairIntersectionPos.Y -= extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(2);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+									else
+									{// first of pair gets adjustment
+										firstOfPairIntersectionPos.Y -= extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(1);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+
+									if (differenceInPairPosition.Y < 0)
+									{
+										firstOfPairIsAboveSecondArr.Add(1);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+									else if (differenceInPairPosition.X > -1)
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									}
+									else
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+								}
+							}
+							else
+							{
+								if (differenceInPairPosition.Y < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.Y -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.X > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.X -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (differenceInPairPositionAbsolute.X < 2 || differenceInPairPositionAbsolute.Y < 2)
+									{
+										if (differenceInPairPosition.Y > 1)
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.X -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else if (differenceInPairPosition.X < -1)
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.Y -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{//no adjustments are made. This logic is a necessity but this case should be avoided at all costs
+											intersectionAjustmentWeights.Add(0);
+										}
+									}
+									else
+									{
+										if (FMath::RandRange(0, 1))
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.X -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.Y -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+									}
+								}
+
+								if (differenceInPairPosition.Y < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+								}
+								else if (differenceInPairPosition.X > -1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+								}
+								else
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+								}
+							}
+
+							break;
+						case 4:
+							if (firstOfPairIntersectionDir == secondOfPairIntersectionDir)
+							{
+								if (differenceInPairPosition.X < 0)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.X -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.Y < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.X -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (FMath::RandRange(0, 1) && differenceInPairPosition.X < 2)
+									{//second of pair gets adjustment
+										secondOfPairIntersectionPos.X -= extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(2);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+									else
+									{// first of pair gets adjustment
+										firstOfPairIntersectionPos.X -= extentOfAdjustment;
+										vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+										intersectionAjustmentWeights.Add(1);
+										differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+									}
+
+									if (differenceInPairPosition.X < 0)
+									{
+										firstOfPairIsAboveSecondArr.Add(1);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+									else if (differenceInPairPosition.Y < 1)
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									}
+									else
+									{
+										firstOfPairIsAboveSecondArr.Add(0);
+										firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									}
+								}
+							}
+							else
+							{
+								if (differenceInPairPosition.X < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+									firstOfPairIntersectionPos.X -= extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(1);
+								}
+								else if (differenceInPairPosition.Y < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+									secondOfPairIntersectionPos.Y += extentOfAdjustment;
+									vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+									intersectionAjustmentWeights.Add(2);
+								}
+								else
+								{
+									if (differenceInPairPositionAbsolute.X < 2 || differenceInPairPositionAbsolute.Y < 2)
+									{
+										if (differenceInPairPosition.X > 1)
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.Y += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else if (differenceInPairPosition.Y > 1)
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.X -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{//no adjustments are made. This logic is a necessity but this case should be avoided at all costs
+											intersectionAjustmentWeights.Add(0);
+										}
+									}
+									else
+									{
+										if (FMath::RandRange(0, 1))
+										{//second of pair gets adjustment
+											secondOfPairIntersectionPos.Y += extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 1] = secondOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(2);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+										else
+										{// first of pair gets adjustment
+											firstOfPairIntersectionPos.X -= extentOfAdjustment;
+											vector2DStorArrOne[currentPair * 2 - 2] = firstOfPairIntersectionPos;
+											intersectionAjustmentWeights.Add(1);
+											differenceInPairPosition = firstOfPairIntersectionPos - secondOfPairIntersectionPos;
+										}
+									}
+								}
+
+								if (differenceInPairPosition.X < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(1);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+								}
+								else if (differenceInPairPosition.Y < 1)
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(1);
+								}
+								else
+								{
+									firstOfPairIsAboveSecondArr.Add(0);
+									firstOfPairIsEvenWithOrLeftOfSecondArr.Add(0);
+								}
+							}
+
+							break;
+						default:
+							break;
+						}
+					}
+				}
+			}
+			if (vector2DStorArrOne.Num() % 2 == 1)
+			{
+				intersectionAjustmentWeights.Add(0);
+			}//just added this lets hope it works
+
+			adjustmentsAppliedToEachIntersection[currentLevelIndex + 1][currentGroupIndex] = intersectionAjustmentWeights;
+			firstOfPairIsAboveSecondAllPairs[currentLevelIndex + 1][currentGroupIndex] = firstOfPairIsAboveSecondArr;
+			firstOfPairIsEvenWithOrLeftOfSecondAllPairs[currentLevelIndex + 1][currentGroupIndex] = firstOfPairIsEvenWithOrLeftOfSecondArr;
+
+
+			// this is the pile of arrays and misc which needs to get reset between every level
+			horizontalAndVerticleDistancesBetweenHolesOrIntersections[0].Empty();
+			horizontalAndVerticleDistancesBetweenHolesOrIntersections[1].Empty();
+
+			horizontalDistancesBetweenHolesOrIntersections.Empty();
+			verticleDistancesBetweenHolesOrIntersections.Empty();
+
+			availableTurnsPerPairBlockOfCurrentLevelCurrentGrouping.Empty();
+
+			whichOfEachPairsTurnsBecomesTheIntersection.Empty();
+
+			firstOfPairHoleOrIntersectionPosStorArr.Empty();
+			firstOfPairHoleDirStorArr.Empty();
+
+			pairStartsOnSameSide.Empty();
+
+			intersectionOrientationStorArr.Empty();
+		}
+	}
+
+	//here all of the resulting intersections from the foundational groupings are being reorganized into one final group on the 4th level
+	vector2DStorArrOne.Empty();
+	intersectionDirStorArr.Empty();
+
+	for (int currentGroupIndex = 0; currentGroupIndex < listOfHolePositionGroupings.Num(); currentGroupIndex++)
+	{
+		topLevelIndex = FMath::Clamp(FMath::RoundHalfFromZero((float)listOfHolePositionGroupings[currentGroupIndex] / 2.0f), 1, 3);
+		vector2DStorArrOne.Add(holeAndIntersectionPositions[topLevelIndex][currentGroupIndex][0]);
+		intersectionDirStorArr.Add(arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[topLevelIndex][currentGroupIndex][0]);
+	}
+	holeAndIntersectionPositions[4][0] = vector2DStorArrOne;
+	arrOfTrackDirectionsLeadingAwayFromEachHoleOrIntersection[4][0] = intersectionDirStorArr;
+	currentGroupSize = vector2DStorArrOne.Num();
+
+	// final group of intersections gets adjusted, and firstOfPairIsAboveSecond 
+  // and firstOfPairIsEvenWithOrLeftOfSecond are calculated
+	intersectionAjustmentWeights.Empty();
+	firstOfPairIsAboveSecondArr.Empty();
+	firstOfPairIsEvenWithOrLeftOfSecondArr.Empty();
+
+  // below here all of the previous logic is repeated for the final grouping
+  // on the 4th level. It get's tricky, so instead of re-feeding the 4th level 
+  // back into the same loop logic, I had to just replicate it, with a few 
+  // minor tweaks, but it's basically the same.
+            </code>
+          </pre>
 
           <div class="row">
             <div class="col-sm mt-3 mt-md-0">
