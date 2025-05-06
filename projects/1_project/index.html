@@ -181,7 +181,7 @@
         </article>
   
         <article>
-          <p>When planning the procedural generation function it was decided the data should be organized into levels and groups. More on that later. Instead of keeping many different variables for all of this data, all of it is centralized under vectors. And so the procedural generation genesis began with a choice: multi-dimensional vectors (TArrays in this case), or housing multiple dimensions of data in a single dimension vector. </p>
+          <p>When planning the procedural generation function it was decided the data should be organized into lists, inside groups, inside levels. Instead of keeping many different variables for all of this data, it's all centralized under vectors. And so; the procedural generation genesis began with a choice: multi-dimensional vectors (TArrays in Unreal), or housing multiple dimensions of data in a single dimension vector. </p>
           
           <p>TArray&lt TArray&lt TArray&lt vec2 &gt &gt &gt positionsNested VS TArray&lt vec2 &gt positionsFlat ?</p> 
           
@@ -193,7 +193,7 @@
 
           <p>The preceding illustration shows how to access the desired elements within a single dimensional vector organized to be multi-dimensional. Thats alot of calculation compared to simply inserting the desired value keys shown with the integersNested reference. Accept, that is actually what is happening behind the scenes in the case of the nested vector. The data stored within integersNested is stored in a single dimension in the memory; which is navigated implicitly just as we would explicitly. </p>
 
-          <p>Considering these factors, Sorting Your Marbles implements multi-dimensional vectors. Although single dimensionality simplifies the memory allocation, the nested vectors are easier to read and write.</p>
+          <p>Considering these factors, Sorting Your Marbles implements multi-dimensional vectors. Although single dimensionality simplifies the memory allocation, the nested vectors are easier to read and write. All of the code is visible to the public <a href="https://github.com/IanMartell">here</a></p>
 
           <p>These vectors; TArrays in unreal engines case, are the backbone of the procedural generation. How? it's quite simple:</p>
   
