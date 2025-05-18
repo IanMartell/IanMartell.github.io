@@ -187,7 +187,7 @@
           
           <p>It comes down to the memory expense vs. the processor expense. With many coding conventions it is preferred to <i>never</i> dynamically allocate memory. All of my vectors are declared and initialized in my header files with placeholder values. So which alternative takes up more memory? If I initiliaze positionsNested with 2 levels, each with 2 groups, with 2 rows, then 2 columns; will the amount of memory designated be the same as initializing positionsFlat with 16 values? No¹: vectors, and their common analogs, reallocate contiguous memory automatically, as needed. However at every reallocation more memory is reserved than immediately needed to minimize the number of reallocations. Therefore; while positionsNested and positionsFlat both contain exactly 16 vec2, every additional slot of memory alloted to positionsNested equates to 8 vec2. Compared to only 1 vec2 per slot regarding positionsFlat. It is possible to limit the memory reserved for positionsNested, but time consuming to figure out. For now positionsNested consumes more memory. ¹(“STD::Vector.” Cppreference.Com, <a href="https://en.cppreference.com/w/cpp/container/vector">en.cppreference.com/w/cpp/container/vector</a>. Accessed 22 Apr. 2025. )</p>
 
-          <p>What about processor expense? </p>
+          <p>What about processor expense?</p>
 
           <img class="img-fluid z-dept-1 rounded" src="/assets/img/a/z.png" alt="Illustration of multi-dimensional vector composition">
 
@@ -195,7 +195,7 @@
 
           <p>The preceding illustration shows how to access the desired elements within a single dimensional vector organized to be multi-dimensional. Thats a lot of calculation compared to simply inserting the desired value keys shown with the integersNested reference. Accept, that is actually what is happening behind the scenes in the case of the nested vector. The data stored within integersNested is stored in a single dimension in the memory; which is navigated implicitly just as we would explicitly. </p>
 
-          <p>Considering these factors, Sorting Your Marbles implements multi-dimensional vectors. Although single dimensionality simplifies the memory allocation, the nested vectors are easier to read and write. All of the code is visible to the public <a href="https://github.com/IanMartell">here</a></p>
+          <p>Considering these factors, S.Y.M. implements multi-dimensional vectors. Although single dimensionality simplifies the memory allocation, the nested vectors are easier to read and write. To view the code behind <a href="https://store.steampowered.com/app/3015900/Sorting_Your_Marbles/">Sorting Your Marbles</a> all of the code is visible to the public <a href="https://github.com/IanMartell">here</a>.</p>
   
         </article>
   
